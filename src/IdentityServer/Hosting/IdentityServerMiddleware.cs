@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using Duende.IdentityServer.Events;
+using Duende.IdentityServer.Logging;
 using Duende.IdentityServer.Services;
 
 namespace Duende.IdentityServer.Hosting
@@ -70,16 +71,23 @@ namespace Duende.IdentityServer.Hosting
                 if (endpoint != null)
                 {
                     _logger.LogInformation("Invoking IdentityServer endpoint: {endpointType} for {url}", endpoint.GetType().FullName, context.Request.Path.ToString());
-
-                    var result = await endpoint.ProcessAsync(context);
-
-                    if (result != null)
+                    
+                    using (new TimedOperation(_logger, $"Invoking {endpoint.GetType().Name}"))
                     {
-                        _logger.LogTrace("Invoking result: {type}", result.GetType().FullName);
-                        await result.ExecuteAsync(context);
-                    }
+                        var result = await endpoint.ProcessAsync(context);
 
-                    return;
+                        if (result != null)
+                        {
+                            _logger.LogTrace("Invoking result: {type}", result.GetType().FullName);
+
+                            using (new TimedOperation(_logger, $"Processing result for {endpoint.GetType().Name}"))
+                            {
+                                await result.ExecuteAsync(context);
+                            }
+                        }
+
+                        return;
+                    }
                 }
             }
             catch (Exception ex)
