@@ -56,5 +56,8 @@ namespace Duende.IdentityServer.Validation
         /// The custom response.
         /// </value>
         public Dictionary<string, object> CustomResponse { get; set; }
+        
+        
+        
     }
 }

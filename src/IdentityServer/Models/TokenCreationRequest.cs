@@ -84,6 +84,7 @@ namespace Duende.IdentityServer.Models
         /// The description.
         /// </value>
         public string Description { get; set; }
+        public string Jkt { get; internal set; }
 
         /// <summary>
         /// Called to validate the <see cref="TokenCreationRequest"/> before it is processed.

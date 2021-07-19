@@ -88,5 +88,6 @@ namespace Duende.IdentityServer.Validation
         /// The device code.
         /// </value>
         public DeviceCode DeviceCode { get; set; }
+        public string DPoPThumbprint { get; internal set; }
     }
 }

@@ -204,7 +204,8 @@ namespace Duende.IdentityServer.Services
                 ClientId = request.ValidatedRequest.Client.ClientId,
                 Description = request.Description,
                 AccessTokenType = request.ValidatedRequest.AccessTokenType,
-                AllowedSigningAlgorithms = request.ValidatedResources.Resources.ApiResources.FindMatchingSigningAlgorithms()
+                AllowedSigningAlgorithms = request.ValidatedResources.Resources.ApiResources.FindMatchingSigningAlgorithms(),
+
             };
 
             // add aud based on ApiResources in the validated request
@@ -222,6 +223,10 @@ namespace Duende.IdentityServer.Services
             if (request.ValidatedRequest.Confirmation.IsPresent())
             {
                 token.Confirmation = request.ValidatedRequest.Confirmation;
+            }
+            else if (request.Jkt.IsPresent())
+            {
+                token.Confirmation = "{\"jkt\" : \"" + request.Jkt + "\"}";
             }
             else
             {

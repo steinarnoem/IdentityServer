@@ -78,6 +78,7 @@ namespace UnitTests.Validation.TokenRequest_Validation
             result.IsError.Should().BeFalse();
         }
 
+
         [Fact]
         [Trait("Category", Category)]
         public async Task Valid_code_request_with_refresh_token_should_succeed()

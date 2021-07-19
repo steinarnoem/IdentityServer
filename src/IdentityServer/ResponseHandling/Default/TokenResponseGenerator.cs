@@ -403,6 +403,11 @@ namespace Duende.IdentityServer.ResponseHandling
                 authorizedScopes = request.ValidatedResources.RawScopeValues;
             }
 
+            if (!request.DPoPThumbprint.IsNullOrEmpty())
+            {
+                tokenRequest.Jkt = request.DPoPThumbprint;
+            }
+
             var at = await TokenService.CreateAccessTokenAsync(tokenRequest);
             var accessToken = await TokenService.CreateSecurityTokenAsync(at);
 
