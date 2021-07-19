@@ -159,18 +159,16 @@ namespace IntegrationTests.Endpoints.Token
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             var json = await response.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-            
+
             result.ContainsKey("access_token").Should().BeTrue();
-            
-            var base64token = result["access_token"].ToString();
-            var payloadBase64 = base64token.Split(".")[1];
-            var payload = Base64Url.Decode(payloadBase64);
-            var payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payload);
+
+            var payloadBase64 = result["access_token"].ToString().Split(".")[1];
+            var payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(Base64Url.Decode(payloadBase64));            
 
             payloadJson.ContainsKey("cnf").Should().BeTrue();
-            var cnf = payloadJson["cnf"];
-            JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(cnf);
-            var test = cnf;
+
+            var jkt = payloadJson["cnf"].GetProperty("jkt");
+            jkt.Should().NotBeNull();
         }
     }
 }

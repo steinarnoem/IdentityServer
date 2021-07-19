@@ -19,6 +19,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace Duende.IdentityServer.Endpoints
 {
@@ -43,10 +44,10 @@ namespace Duende.IdentityServer.Endpoints
         /// <param name="events">The events.</param>
         /// <param name="logger">The logger.</param>
         public TokenEndpoint(
-            IClientSecretValidator clientValidator, 
-            ITokenRequestValidator requestValidator, 
-            ITokenResponseGenerator responseGenerator, 
-            IEventService events, 
+            IClientSecretValidator clientValidator,
+            ITokenRequestValidator requestValidator,
+            ITokenResponseGenerator responseGenerator,
+            IEventService events,
             ILogger<TokenEndpoint> logger)
         {
             _clientValidator = clientValidator;
@@ -72,7 +73,7 @@ namespace Duende.IdentityServer.Endpoints
                 return Error(OidcConstants.TokenErrors.InvalidRequest);
             }
 
-           
+
 
 
             return await ProcessTokenRequestAsync(context);
@@ -103,79 +104,91 @@ namespace Duende.IdentityServer.Endpoints
 
             //https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-03
             var dpopHeader = context.Request.Headers["DPoP"];
-            var dpopHeaderString = dpopHeader[0];
-            try
+            if (!dpopHeader.IsNullOrEmpty())
             {
-                var tokenAsString = new StringBuilder();
-                var parts = dpopHeaderString.Split(".");
-                var joseHeader = parts[0];
-                var decodedJoseHeader = Base64Url.Decode(joseHeader);
-                
-                var jwtHeader = Encoding.UTF8.GetString(decodedJoseHeader);
+                var dpopHeaderString = dpopHeader[0];
+                try
+                {                    
+                    var joseHeader = dpopHeaderString.Split(".")[0];
 
-                var jwk = @"{""kty"":""EC"", ""x"":""l8tFrhx-34tV3hRICRDY9zCkDlpBhF42UQUfWVAWBFs"",""y"":""9VE4jf_Ok_o64zbTTlcuNJajHmt6v9TDVrU0CdvGRDA"",""crv"":""P-256""}";
+                    //extract jwk                    
+                    var jwtHeader = Encoding.UTF8.GetString(Base64Url.Decode(joseHeader));
 
-                var key = new JsonWebKey(jwk);
-                
-                var thumb = key.ComputeJwkThumbprint();
-                var thumbString = Base64Url.Encode(thumb);                               
+                    var result = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jwtHeader);
+                    if (result.ContainsKey("jwk"))
+                    {
+                        var jwk = result["jwk"];
 
+                        var rawJwk = jwk.GetRawText();
 
-                    /*To check if a string that was received as part of an HTTP Request is
-       a valid DPoP proof, the receiving server MUST ensure that
+                        var key = new JsonWebKey(rawJwk);
 
-       1.  the string value is a well-formed JWT,
+                        var thumb = key.ComputeJwkThumbprint();
+                        var thumbString = Base64Url.Encode(thumb);
 
-       2.  all required claims per Section 4.2 are contained in the JWT,
+                        #region validation rules for dpop
+                        /*To check if a string that was received as part of an HTTP Request is
+           a valid DPoP proof, the receiving server MUST ensure that
 
-       3.  the "typ" field in the header has the value "dpop+jwt",
+           1.  the string value is a well-formed JWT,
 
-       4.  the algorithm in the header of the JWT indicates an asymmetric
-           digital signature algorithm, is not "none", is supported by the
-           application, and is deemed secure,
+           2.  all required claims per Section 4.2 are contained in the JWT,
 
-       5.  the JWT signature verifies with the public key contained in the
-           "jwk" header of the JWT,
+           3.  the "typ" field in the header has the value "dpop+jwt",
 
-       6.  the "htm" claim matches the HTTP method value of the HTTP request
-           in which the JWT was received,
+           4.  the algorithm in the header of the JWT indicates an asymmetric
+               digital signature algorithm, is not "none", is supported by the
+               application, and is deemed secure,
 
-       7.  the "htu" claims matches the HTTPS URI value for the HTTP request
-           in which the JWT was received, ignoring any query and fragment
-           parts,
+           5.  the JWT signature verifies with the public key contained in the
+               "jwk" header of the JWT,
 
-       8.  the token was issued within an acceptable timeframe and, within a
-           reasonable consideration of accuracy and resource utilization, a
-           proof JWT with the same "jti" value has not previously been
-           received at the same resource during that time period (see
-           Section 8.1).
+           6.  the "htm" claim matches the HTTP method value of the HTTP request
+               in which the JWT was received,
 
-       Servers SHOULD employ Syntax-Based Normalization and Scheme-Based
-       Normalization in accordance with Section 6.2.2. and Section 6.2.3. of
-       [RFC3986] before comparing the "htu" claim.*/
+           7.  the "htu" claims matches the HTTPS URI value for the HTTP request
+               in which the JWT was received, ignoring any query and fragment
+               parts,
 
-                    JwtSecurityTokenHandler jwtHandler = new JwtSecurityTokenHandler();
-                SecurityToken validatedToken;
-                var validationParameters = new TokenValidationParameters();
-                validationParameters.IssuerSigningKey = key;
-                validationParameters.ValidateIssuerSigningKey = true;
-                validationParameters.RequireAudience = false;
-                validationParameters.ValidateIssuer = false;
-                validationParameters.ValidateAudience = false;         
-                validationParameters.RequireExpirationTime = false;
-                
-                //For å validere med JWK i tokenet: hent ut JWK - https://stackoverflow.com/questions/58601556/how-to-validate-jwt-token-using-jwks-in-dot-net-core
+           8.  the token was issued within an acceptable timeframe and, within a
+               reasonable consideration of accuracy and resource utilization, a
+               proof JWT with the same "jti" value has not previously been
+               received at the same resource during that time period (see
+               Section 8.1).
 
-                jwtHandler.ValidateToken(dpopHeaderString, validationParameters, out validatedToken);
+           Servers SHOULD employ Syntax-Based Normalization and Scheme-Based
+           Normalization in accordance with Section 6.2.2. and Section 6.2.3. of
+           [RFC3986] before comparing the "htu" claim.*/
 
-                if (validatedToken == null)
-                    return Error("DPoP Error", "DPoP validation failed", requestResult.CustomResponse);
+                        #endregion
 
-                requestResult.ValidatedRequest.DPoPThumbprint = thumbString;
-            }
-            catch (Exception ex)
-            {                
-                return Error("DPoP Error", ex.Message, requestResult.CustomResponse);
+                        var jwtHandler = new JwtSecurityTokenHandler();
+                        var validationParameters = new TokenValidationParameters
+                        {
+                            IssuerSigningKey = key,
+                            ValidateIssuerSigningKey = true,
+                            RequireAudience = false,
+                            ValidateIssuer = false,
+                            ValidateAudience = false,
+                            RequireExpirationTime = false
+                        };
+
+                        jwtHandler.ValidateToken(dpopHeaderString, validationParameters, out var validatedToken);
+
+                        if (validatedToken == null)
+                            return Error("DPoP Error", "DPoP validation failed", requestResult.CustomResponse);
+
+                        requestResult.ValidatedRequest.DPoPThumbprint = thumbString;
+                    }
+
+                    //var jwk = @"{""kty"":""EC"", ""x"":""l8tFrhx-34tV3hRICRDY9zCkDlpBhF42UQUfWVAWBFs"",""y"":""9VE4jf_Ok_o64zbTTlcuNJajHmt6v9TDVrU0CdvGRDA"",""crv"":""P-256""}";
+
+                    
+                }
+                catch (Exception ex)
+                {
+                    return Error("DPoP Error", ex.Message, requestResult.CustomResponse);
+                }
             }
 
             // create response

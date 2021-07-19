@@ -19,6 +19,8 @@ using IdentityServerHost.Extensions;
 using IdentityServerHost.Quickstart.UI;
 using Microsoft.Extensions.Hosting;
 using Serilog.Events;
+using Duende.IdentityServer.Services;
+using Microsoft.Extensions.Logging;
 
 namespace IdentityServerHost
 {
@@ -45,6 +47,15 @@ namespace IdentityServerHost
 
             // cookie policy to deal with temporary browser incompatibilities
             services.AddSameSiteCookiePolicy();
+            services.AddSingleton<ICorsPolicyService>((container) =>
+            {
+                var logger = container.GetRequiredService<ILogger<DefaultCorsPolicyService>>();
+
+                return new DefaultCorsPolicyService(logger)
+                {
+                    AllowedOrigins = { "https://foo", "https://bar", "https://localhost:44395" }
+                };
+            });
 
             var builder = services.AddIdentityServer(options =>
                 {
@@ -68,8 +79,9 @@ namespace IdentityServerHost
                 .AddTestUsers(TestUsers.Users)
                 .AddProfileService<HostProfileService>()
                 .AddCustomTokenRequestValidator<ParameterizedScopeTokenRequestValidator>()
-                .AddScopeParser<ParameterizedScopeParser>()
+                .AddScopeParser<ParameterizedScopeParser>()                
                 .AddMutualTlsSecretValidators();
+            
 
             services.AddExternalIdentityProviders();
 
@@ -107,11 +119,11 @@ namespace IdentityServerHost
             //builder.AddDeveloperSigningCredential();
 
             // use an RSA-based certificate with RS256
-            var rsaCert = new X509Certificate2("./testkeys/identityserver.test.rsa.p12", "changeit");
-            builder.AddSigningCredential(rsaCert, "RS256");
+            //var rsaCert = new X509Certificate2("./testkeys/identityserver.test.rsa.p12", "changeit");
+            //builder.AddSigningCredential(rsaCert, "RS256");
 
             // ...and PS256
-            builder.AddSigningCredential(rsaCert, "PS256");
+            //builder.AddSigningCredential(rsaCert, "PS256");
 
             // or manually extract ECDSA key from certificate (directly using the certificate is not support by Microsoft right now)
             var ecCert = new X509Certificate2("./testkeys/identityserver.test.ecdsa.p12", "changeit");
