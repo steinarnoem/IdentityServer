@@ -53,7 +53,8 @@ namespace IdentityServerHost
 
                 return new DefaultCorsPolicyService(logger)
                 {
-                    AllowedOrigins = { "https://foo", "https://bar", "https://localhost:44395" }
+                    AllowAll = true
+                    //AllowedOrigins = { "https://foo", "https://bar", "https://localhost:44395" }
                 };
             });
 

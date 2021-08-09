@@ -21,6 +21,7 @@ namespace IdentityServerHost.Configuration
                 {
                     ClientId = "client",
                     ClientSecrets = { new Secret("secret".Sha256()) },
+                    RequireClientSecret = false,
                     AllowedGrantTypes = GrantTypes.ClientCredentials,
                     AllowedScopes =
                     {

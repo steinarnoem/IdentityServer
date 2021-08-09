@@ -10,7 +10,8 @@ namespace Duende.IdentityServer.Validation
     /// Validation result for token requests
     /// </summary>
     public class TokenRequestValidationResult : ValidationResult
-    {
+    {        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TokenRequestValidationResult"/> class.
         /// </summary>

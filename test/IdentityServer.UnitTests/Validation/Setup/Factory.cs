@@ -122,7 +122,8 @@ namespace UnitTests.Validation.Setup
                 refreshTokenService,
                 new TestEventService(), 
                 new StubClock(), 
-                TestLogger.Create<TokenRequestValidator>());
+                TestLogger.Create<TokenRequestValidator>(),
+                new Duende.IdentityServer.Validation.Default.DpopValidator());
         }
 
         private static IRefreshTokenService CreateRefreshTokenService(IRefreshTokenStore store, IProfileService profile)
@@ -140,6 +141,11 @@ namespace UnitTests.Validation.Setup
         {
             store = store ?? new InMemoryResourcesStore(TestScopes.GetIdentity(), TestScopes.GetApis(), TestScopes.GetScopes());
             return new DefaultResourceValidator(store, new DefaultScopeParser(TestLogger.Create<DefaultScopeParser>()), TestLogger.Create<DefaultResourceValidator>());
+        }
+
+        internal static IDpopValidator CreateDpopValidator()
+        {
+            return new Duende.IdentityServer.Validation.Default.DpopValidator();
         }
 
         internal static ITokenCreationService CreateDefaultTokenCreator(IdentityServerOptions options = null)

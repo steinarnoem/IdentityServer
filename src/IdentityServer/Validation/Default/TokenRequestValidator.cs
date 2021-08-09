@@ -37,24 +37,26 @@ namespace Duende.IdentityServer.Validation
         private readonly IDeviceCodeValidator _deviceCodeValidator;
         private readonly ISystemClock _clock;
         private readonly ILogger _logger;
+        private readonly IDpopValidator _dpopValidator;
 
         private ValidatedTokenRequest _validatedRequest;
 
         public TokenRequestValidator(
             IdentityServerOptions options,
             IIssuerNameService issuerNameService,
-            IAuthorizationCodeStore authorizationCodeStore, 
-            IResourceOwnerPasswordValidator resourceOwnerValidator, 
-            IProfileService profile, 
-            IDeviceCodeValidator deviceCodeValidator, 
-            ExtensionGrantValidator extensionGrantValidator, 
-            ICustomTokenRequestValidator customRequestValidator,
+            IAuthorizationCodeStore authorizationCodeStore,
+            IResourceOwnerPasswordValidator resourceOwnerValidator,
+            IProfileService profile,
+            IDeviceCodeValidator deviceCodeValidator,
+            ExtensionGrantValidator extensionGrantValidator,
+            ICustomTokenRequestValidator customRequestValidator,           
             IResourceValidator resourceValidator,
             IResourceStore resourceStore,
             IRefreshTokenService refreshTokenService,
             IEventService events, 
             ISystemClock clock, 
-            ILogger<TokenRequestValidator> logger)
+            ILogger<TokenRequestValidator> logger,
+            IDpopValidator dpopValidator)
         {
             _logger = logger;
             _options = options;
@@ -70,6 +72,7 @@ namespace Duende.IdentityServer.Validation
             _resourceStore = resourceStore;
             _refreshTokenService = refreshTokenService;
             _events = events;
+            _dpopValidator = dpopValidator;
         }
 
         /// <summary>
